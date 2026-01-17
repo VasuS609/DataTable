@@ -5,9 +5,6 @@ const App = () =>{
 
   return(
     <div>
-      <h1>
-        Arti Instite
-      </h1>
       <ArtworkTable/>
     </div>
   )

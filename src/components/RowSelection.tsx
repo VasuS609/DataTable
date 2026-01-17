@@ -25,14 +25,6 @@ export const RowSelectionOverlay = ({ onSelect }: RowSelectionOverlayProps) => {
 
   return (
     <>
-      {/* Button to open the popup */}
-      <button
-        type="button"
-        onClick={(e) => overlayRef.current?.toggle(e)}
-        className="p-button p-button-sm"
-      >
-        Select Rows
-      </button>
 
       {/* Popup panel */}
       <OverlayPanel ref={overlayRef}>
