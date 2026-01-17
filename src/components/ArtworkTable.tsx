@@ -1,18 +1,8 @@
 // ArtworkTable.tsx
 import { useState, useEffect} from 'react';
 import { DataTable } from 'primereact/datatable';
-import { Column } from 'primereact/column';;
-
-// Types (keep them simple)
-interface Artwork {
-  id: number;
-  title: string;
-  place_of_origin: string;
-  artist_display: string;
-  inscriptions: string;
-  date_start: number;
-  date_end: number;
-}
+import { Column } from 'primereact/column';
+import { Artwork } from '../types/TableData';
 
 const ROWS_PER_PAGE = 12;
 

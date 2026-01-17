@@ -1,5 +1,5 @@
 
-export interface Table {
+export interface Artwork {
   id: number;
   title: string;
   place_of_origin: string;
