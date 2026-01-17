@@ -18,6 +18,6 @@ export interface Pagination {
 }
 
 export interface ApiResponse {
-  data: Table[];
+  data: Artwork[];
   pagination: Pagination;
 }
