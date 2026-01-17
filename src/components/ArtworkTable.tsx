@@ -1,91 +1,104 @@
-import { useState, useEffect, useMemo } from 'react';
+// ArtworkTable.tsx
+import { useState, useEffect} from 'react';
 import { DataTable } from 'primereact/datatable';
-import { Column } from 'primereact/column';
-import type { DataTablePageEvent, DataTableSelectionMultipleChangeEvent } from 'primereact/datatable';
-import type { Table, ApiResponse } from '../types/TableData';
-import { usePersistentSelection } from '../hooks/usePersistentSelection';
+import { Column } from 'primereact/column';;
+
+// Types (keep them simple)
+interface Artwork {
+  id: number;
+  title: string;
+  place_of_origin: string;
+  artist_display: string;
+  inscriptions: string;
+  date_start: number;
+  date_end: number;
+}
 
 const ROWS_PER_PAGE = 12;
 
 export default function ArtworkTable() {
-  const [data, setData] = useState<Table[]>([]);
-  const [totalRecords, setTotalRecords] = useState(0);
-  const [currentPage, setCurrentPage] = useState(0); // 0-based for DataTable
+  const [artworks, setArtworks] = useState<Artwork[]>([]);
+  const [total, setTotal] = useState(0);
+  const [currentPage, setCurrentPage] = useState(0); // PrimeReact uses 0-based pages
   const [loading, setLoading] = useState(true);
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
 
-  const { setAllRowsOnPage, getSelectedIdsForPage } = usePersistentSelection();
-  // Fetch data for a specific page (1-based)
-  const fetchPage = async (page: number) => {
+  // Load artworks for a page (API uses 1-based page numbers)
+  const loadPage = async (page: number) => {
     setLoading(true);
     try {
       const res = await fetch(`https://api.artic.edu/api/v1/artworks?page=${page}&limit=${ROWS_PER_PAGE}`);
-      const result: ApiResponse = await res.json();
-      setData(result.data);
-      setTotalRecords(result.pagination.total_object);
+      const data = await res.json();
+      
+      setArtworks(data.data);
+      setTotal(data.pagination.total); // ✅ Correct field name
     } catch (err) {
-      console.error('Failed to fetch artworks:', err);
-      setData([]);
+      console.error('Error loading artworks:', err);
+      setArtworks([]);
     } finally {
       setLoading(false);
     }
   };
 
-  // Load first page when component mounts
+  // Load first page when component starts
   useEffect(() => {
-    fetchPage(1);
+    loadPage(1);
   }, []);
 
-  // Get currently selected rows (for DataTable display)
-  const selectedRows = useMemo(() => {
-    const oneBased = currentPage + 1;
-    const selectedIds = getSelectedIdsForPage(oneBased);
-    return data.filter(item => selectedIds.has(item.id));
-  }, [data, currentPage, getSelectedIdsForPage]);
-
-  // Handle pagination (when user clicks next/prev page)
-  const handlePageChange = (event: DataTablePageEvent) => {
-    const pageIndex = event.page ?? 0;
-    setCurrentPage(pageIndex);
-    fetchPage(pageIndex + 1); // Convert to 1-based for API
+  // When user changes page
+  const onPageChange = (event: any) => {
+    const newPage = event.page; // 0-based
+    setCurrentPage(newPage);
+    loadPage(newPage + 1); // API needs 1-based
   };
 
-  
-  // Handle checkbox selections in the table
-  const handleSelectionChange = (event: DataTableSelectionMultipleChangeEvent<Table[]>) => {
-    const selectedItems = event.value || [];
-    const selectedIds = selectedItems.map(item => item.id);
-    const oneBased = currentPage + 1;
-    setAllRowsOnPage(oneBased, selectedIds, true);
+  // Handle row selection
+  const onSelectionChange = (event: any) => {
+    const selectedRows = event.value || [];
+    const ids = new Set(selectedRows.map((item: Artwork) => item.id));
+    setSelectedIds(ids);
   };
+
+  // Show how many are selected
+  const selectedCount = selectedIds.size;
+
+  // Calculate "Showing X to Y of Z"
+  const start = currentPage * ROWS_PER_PAGE + 1;
+  const end = Math.min(start + ROWS_PER_PAGE - 1, total);
 
   return (
     <div className="">
-   
-      <h4>Selected: <span className='text-blue-500'> {selectedRows.length} </span> rows</h4>
-      {/* Data Table */}
+      <h4 className="">
+        Selected: <span className="text-blue-500">{selectedCount}</span> rows
+      </h4>
+      
+
       <DataTable
-        value={data}
-        dataKey="id"
-        paginator
-        rows={ROWS_PER_PAGE}
-        totalRecords={totalRecords}
-        lazy
-        first={currentPage * ROWS_PER_PAGE}
-        onPage={handlePageChange}
-        selection={selectedRows}
-        onSelectionChange={handleSelectionChange}
-        selectionMode="multiple"
-        loading={loading}
-        
-      >
-        <Column selectionMode="multiple" style={{ width: '1rem' }} />
-        <Column field="title" header="Title"  />
-        <Column field="place_of_origin" header="Origin"  />
-        <Column field="artist_display" header="Artist" style={{ minWidth: '200px' }} />
-        <Column field="inscription" header="Inscription" />
-        <Column field="date_start" header="Start Date"  />
-        <Column field="date_end" header="End Date"/>
-      </DataTable>
+  value={artworks}
+  dataKey="id"
+  paginator
+  rows={ROWS_PER_PAGE}
+  totalRecords={total}
+  lazy
+  first={currentPage * ROWS_PER_PAGE}
+  onPage={onPageChange}
+  selectionMode="multiple"
+  selection={artworks.filter(item => selectedIds.has(item.id))}
+  onSelectionChange={onSelectionChange}
+  loading={loading}
+  responsiveLayout="scroll"
+  paginatorTemplate="CurrentPageReport FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink"
+  currentPageReportTemplate="Showing {first} to {last} of {totalRecords} entries"
+>
+  <Column selectionMode="multiple" style={{ width: '3rem' }} />
+  <Column field="title" header="Title" />
+  <Column field="place_of_origin" header="Origin" />
+  <Column field="artist_display" header="Artist" style={{ minWidth: '200px' }} />
+  <Column field="inscriptions" header="Inscriptions" />
+  <Column field="date_start" header="Start Date" />
+  <Column field="date_end" header="End Date" />
+</DataTable>
+    
     </div>
   );
 }
